@@ -253,14 +253,14 @@ textarea {
 .nav-links a {
   padding: 10px 13px;
   border-radius: 8px;
-  color: var(--muted);
+  /* color: var(--muted); */
   font-size: 0.92rem;
   transition: color 0.25s ease, background 0.25s ease;
 }
 
 .nav-links a:hover,
 .nav-links a.active {
-  color: var(--text);
+  color: var(--blue);
   background: rgba(37, 99, 235, 0.09);
 }
 
