@@ -4,7 +4,7 @@
   --panel: rgba(255, 255, 255, 0.76);
   --panel-strong: rgba(255, 255, 255, 0.9);
   --text: #101828;
-  --muted: #f7fbff;
+  --muted: #ffffff;
   --line: rgba(25, 36, 58, 0.13);
   --cyan: #0891b2;
   --blue: #2563eb;
@@ -13,7 +13,7 @@
   --green: #34d399;
   --chip: #ffffff;
   --inverse: #07111f;
-  --header-bg: rgba(255, 255, 255, 0.7);
+  --header-bg: rgba(136, 132, 242, 0.7);
   --glow-a: rgba(14, 165, 233, 0.2);
   --glow-b: rgba(124, 58, 237, 0.18);
   --glow-c: rgba(219, 39, 119, 0.14);
@@ -33,7 +33,7 @@ body[data-theme="aqua"] {
   --panel: rgba(255, 255, 255, 0.78);
   --panel-strong: rgba(255, 255, 255, 0.92);
   --text: #09252c;
-  --muted: #45636c;
+  --muted: #ffffff;
   --line: rgba(8, 76, 97, 0.16);
   --cyan: #0f766e;
   --blue: #0284c7;
@@ -41,7 +41,7 @@ body[data-theme="aqua"] {
   --pink: #10b981;
   --chip: #ffffff;
   --inverse: #052025;
-  --header-bg: rgba(245, 255, 253, 0.74);
+  --header-bg: rgba(61, 240, 205, 0.74);
   --glow-a: rgba(20, 184, 166, 0.22);
   --glow-b: rgba(14, 165, 233, 0.2);
   --glow-c: rgba(16, 185, 129, 0.14);
@@ -53,7 +53,7 @@ body[data-theme="ember"] {
   --panel: rgba(255, 255, 255, 0.76);
   --panel-strong: rgba(255, 255, 255, 0.9);
   --text: #241423;
-  --muted: #685666;
+  --muted: #ffffff;
   --line: rgba(88, 28, 135, 0.14);
   --cyan: #e11d48;
   --blue: #f97316;
@@ -61,7 +61,7 @@ body[data-theme="ember"] {
   --pink: #ec4899;
   --chip: #ffffff;
   --inverse: #251124;
-  --header-bg: rgba(255, 250, 246, 0.76);
+  --header-bg: rgba(240, 81, 81, 0.322);
   --glow-a: rgba(249, 115, 22, 0.18);
   --glow-b: rgba(236, 72, 153, 0.18);
   --glow-c: rgba(147, 51, 234, 0.14);
@@ -253,7 +253,7 @@ textarea {
 .nav-links a {
   padding: 10px 13px;
   border-radius: 8px;
-  /* color: var(--muted); */
+  color: var(--muted);
   font-size: 0.92rem;
   transition: color 0.25s ease, background 0.25s ease;
 }
@@ -793,7 +793,7 @@ pre {
 .contact-copy p,
 .growth-node p,
 .site-footer {
-  color: var(--muted);
+  /* color: var(--muted); */
   line-height: 1.75;
 }
 
@@ -1090,7 +1090,7 @@ pre {
 .hire-card p,
 .personality-panel p,
 .project-deep-dive p {
-  color: var(--muted);
+  /* color: var(--muted); */
   line-height: 1.75;
 }
 
