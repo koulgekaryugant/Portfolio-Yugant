@@ -20,4 +20,4 @@ export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "yugantkoulgekar15@gmail.com";
 export const resumeDocPath = import.meta.env.VITE_RESUME_DOC_PATH || "siteContent/resume";
-export const staticResumePath = "/resume/latest-resume.pdf";
+export const staticResumePath = "/resume/Yugant_koulgekar.pdf";

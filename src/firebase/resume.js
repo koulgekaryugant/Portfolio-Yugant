@@ -3,7 +3,7 @@ import { db, resumeDocPath, staticResumePath } from "./config";
 
 export const defaultResumeMetadata = {
   title: "Yugant D Koulgekar - Resume",
-  fileName: "latest-resume.pdf",
+  fileName: "Yugant_koulgekar.pdf",
   downloadPath: staticResumePath,
   version: "Latest",
   notes: "Professional resume for recruiter review."
@@ -40,7 +40,7 @@ export async function saveResumeMetadata(metadata) {
 
   const cleanMetadata = {
     title: metadata.title?.trim() || defaultResumeMetadata.title,
-    fileName: "latest-resume.pdf",
+    fileName: "Yugant_koulgekar.pdf",
     downloadPath: staticResumePath,
     version: metadata.version?.trim() || defaultResumeMetadata.version,
     notes: metadata.notes?.trim() || defaultResumeMetadata.notes,
