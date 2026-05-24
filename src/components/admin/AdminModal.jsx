@@ -57,7 +57,7 @@ export function AdminModal({ open, onClose }) {
     try {
       const saved = await saveResumeMetadata(metadata);
       setMetadata(saved);
-      setMessage("Resume metadata updated. Replace the PDF at public/resume/latest-resume.pdf when needed.");
+      setMessage("Resume metadata updated. Replace the PDF at public/Yugant_koulgekar.pdf when needed.");
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -129,7 +129,7 @@ export function AdminModal({ open, onClose }) {
                   Static PDF path
                 </div>
                 <p className="mt-2">{staticResumePath}</p>
-                <p className="mt-2 text-slate-400">Replace the actual PDF in public/resume/latest-resume.pdf before deploying.</p>
+                <p className="mt-2 text-slate-400">Replace the actual PDF in public/Yugant_koulgekar.pdf before deploying.</p>
               </div>
               <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-bold text-ink-950" disabled={busy}>
                 <Save size={18} />

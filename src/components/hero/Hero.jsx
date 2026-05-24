@@ -1,117 +1,240 @@
-import { ArrowRight, Download, Github, Linkedin, MapPin } from "lucide-react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Download, Github, Linkedin, MapPin, Sparkles } from "lucide-react";
 import { AVATAR_URL, personal } from "../../data/portfolio";
 import { useViewMode } from "../../context/ViewModeContext";
 
+const IMAGES = [
+  {
+    src: "https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/1.02464a56.png",
+    bg: "#F4845F",
+    panel: "#F79B7F"
+  },
+  {
+    src: "https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/2.b977faab.png",
+    bg: "#6BBF7A",
+    panel: "#85CC92"
+  },
+  {
+    src: "https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/3.4df853b4.png",
+    bg: "#E882B4",
+    panel: "#ED9DC4"
+  },
+  {
+    src: "https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/4.4457fbce.png",
+    bg: "#6EB5FF",
+    panel: "#8DC4FF"
+  }
+];
+
+const TRANSITION_MS = 650;
+
+function getRole(index, activeIndex) {
+  const total = IMAGES.length;
+  const diff = (index - activeIndex + total) % total;
+
+  if (diff === 0) return "center";
+  if (diff === 1) return "right";
+  if (diff === total - 1) return "left";
+  return "back";
+}
+
+function getImageStyle(role, isMobile) {
+  const transition = `transform ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1), opacity ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1), filter ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)`;
+  const x = isMobile ? 24 : 42;
+
+  const styles = {
+    center: {
+      transform: "translate3d(0, 0, 0) scale(1)",
+      opacity: 1,
+      zIndex: 30,
+      filter: "blur(0px)"
+    },
+    left: {
+      transform: `translate3d(-${x}%, ${isMobile ? "2%" : "4%"}, 0) scale(${isMobile ? 0.58 : 0.7})`,
+      opacity: isMobile ? 0.22 : 0.42,
+      zIndex: 18,
+      filter: "blur(1.2px)"
+    },
+    right: {
+      transform: `translate3d(${x}%, ${isMobile ? "2%" : "4%"}, 0) scale(${isMobile ? 0.58 : 0.7})`,
+      opacity: isMobile ? 0.22 : 0.42,
+      zIndex: 18,
+      filter: "blur(1.2px)"
+    },
+    back: {
+      transform: "translate3d(0, 8%, 0) scale(0.48)",
+      opacity: 0,
+      zIndex: 5,
+      filter: "blur(4px)"
+    }
+  };
+
+  return { ...styles[role], transition, willChange: "transform, opacity, filter" };
+}
+
 export function Hero({ onResumeDownload, resumeMetadata }) {
   const { isHR } = useViewMode();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => (typeof window === "undefined" ? false : window.innerWidth < 640));
+  const animationLockRef = useRef(false);
+  const animationTimerRef = useRef(null);
+
+  const activeImage = IMAGES[activeIndex];
+
+  useEffect(() => {
+    IMAGES.forEach((item) => {
+      const image = new Image();
+      image.src = item.src;
+    });
+  }, []);
+
+  useEffect(() => {
+    const updateMobileState = () => setIsMobile(window.innerWidth < 640);
+    updateMobileState();
+    window.addEventListener("resize", updateMobileState);
+    return () => window.removeEventListener("resize", updateMobileState);
+  }, []);
+
+  function goTo(direction) {
+    if (animationLockRef.current) return;
+    animationLockRef.current = true;
+    setIsAnimating(true);
+    setActiveIndex((current) => (current + direction + IMAGES.length) % IMAGES.length);
+    window.clearTimeout(animationTimerRef.current);
+    animationTimerRef.current = window.setTimeout(() => {
+      animationLockRef.current = false;
+      setIsAnimating(false);
+    }, TRANSITION_MS);
+  }
+
+  useEffect(() => {
+    const rotation = window.setInterval(() => goTo(1), 3200);
+    return () => {
+      window.clearInterval(rotation);
+      window.clearTimeout(animationTimerRef.current);
+    };
+  }, []);
+
+  const heroStyle = useMemo(
+    () => ({
+      "--cinema-bg": activeImage.bg,
+      "--cinema-panel": activeImage.panel
+    }),
+    [activeImage]
+  );
 
   return (
-    <section id="home" className="section-shell grid min-h-screen items-center gap-12 pt-32 lg:grid-cols-[1.08fr_0.92fr]">
-      <motion.div
-        className="mode-transition"
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-      >
-        <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="relative h-24 w-24 shrink-0 rounded-full bg-gradient-to-br from-cyan-300 via-blue-500 to-orange-500 p-[3px] shadow-soft [animation:ringPulse_3s_ease-in-out_infinite]">
-            <img
-              src={AVATAR_URL}
-              alt="Yugant D Koulgekar"
-              className="h-full w-full rounded-full border-4 border-ink-950 object-cover"
-              loading="eager"
-            />
-          </div>
-          <div>
-            <span className="section-kicker !mb-2">Associate Developer</span>
-            <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-300">
-              <MapPin size={16} className="text-cyan-300" />
-              {personal.location}
-              <span className="h-1 w-1 rounded-full bg-slate-500" />
-              {personal.company}
-            </div>
+    <section id="home" className="cinema-hero" style={heroStyle} aria-label="Cinematic developer portfolio hero">
+      <div className="cinema-hero__depth" aria-hidden="true" />
+      <div className="cinema-hero__grain" aria-hidden="true" />
+
+      <div className="cinema-hero__inner">
+        <div className="cinema-hero__top">
+          <p className="cinema-hero__brand">TOONHUB</p>
+          <div className="cinema-hero__meta">
+            <MapPin size={15} />
+            <span>{personal.location}</span>
           </div>
         </div>
 
-        <h1 className="max-w-4xl font-display text-5xl font-bold leading-[1.03] tracking-tight text-white md:text-7xl">
-          {personal.name}
-        </h1>
-        <p className="mt-6 max-w-2xl text-xl font-semibold text-cyan-100 md:text-2xl">
-          {isHR
-            ? "Associate Developer · Pune, India · Open to Opportunities"
-            : "Building intelligent systems & scalable web solutions."}
-        </p>
-        <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">{personal.bio}</p>
+        <div className="cinema-hero__stage">
+          <h2 className="cinema-hero__ghost" aria-hidden="true">
+            3D SHAPE
+          </h2>
+          <div className="cinema-hero__panel" aria-hidden="true" />
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={onResumeDownload}
-            className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-bold text-ink-950 transition hover:bg-cyan-200"
-          >
-            <Download size={18} />
-            Download Resume
-          </button>
-          <a
-            href="#projects"
-            className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 px-5 py-3 font-bold text-white transition hover:border-cyan-300/70 hover:bg-slate-900"
-          >
-            View Projects <ArrowRight size={18} />
+          <div className="cinema-carousel" aria-live="polite">
+            {IMAGES.map((image, index) => {
+              const role = getRole(index, activeIndex);
+              return (
+                <div key={image.src} className="cinema-carousel__item" style={getImageStyle(role, isMobile)} aria-hidden={role !== "center"}>
+                  <img
+                    src={image.src}
+                    alt={role === "center" ? "Cinematic developer identity visual" : ""}
+                    className="cinema-carousel__image"
+                    draggable="false"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="cinema-hero__bottom">
+          <div className="cinema-hero__content">
+            <div className="cinema-hero__identity">
+              <div className="avatar-orbit h-16 w-16 shrink-0 rounded-full sm:h-20 sm:w-20">
+                <span className="avatar-orbit__ring" aria-hidden="true" />
+                <span className="avatar-orbit__aura" aria-hidden="true" />
+                <img
+                  src={AVATAR_URL}
+                  alt="Yugant D Koulgekar"
+                  className="relative z-[2] h-full w-full rounded-full border-4 border-ink-950 object-cover"
+                  loading="eager"
+                />
+              </div>
+              <div>
+                <div className="cinema-hero__kicker">
+                  <Sparkles size={14} />
+                  Associate Developer
+                </div>
+                <h1>{personal.name}</h1>
+              </div>
+            </div>
+
+            <p className="cinema-hero__subtitle">
+              {isHR
+                ? "Associate Developer - Pune, India - Open to Opportunities"
+                : "Building intelligent systems & scalable web solutions."}
+            </p>
+            <p className="cinema-hero__bio">{personal.bio}</p>
+
+            <div className="cinema-hero__actions">
+              <button
+                type="button"
+                onClick={() => goTo(-1)}
+                disabled={isAnimating}
+                className="cinema-nav-button focus-ring"
+                aria-label="Show previous carousel visual"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(1)}
+                disabled={isAnimating}
+                className="cinema-nav-button focus-ring"
+                aria-label="Show next carousel visual"
+              >
+                <ArrowRight size={20} />
+              </button>
+              <button type="button" onClick={onResumeDownload} className="cinema-resume-button focus-ring">
+                <Download size={17} />
+                Open Resume
+              </button>
+              <a href={personal.github} target="_blank" rel="noreferrer" className="cinema-social-link focus-ring" aria-label="Open GitHub profile">
+                <Github size={17} />
+              </a>
+              <a href={personal.linkedin} target="_blank" rel="noreferrer" className="cinema-social-link focus-ring" aria-label="Open LinkedIn profile">
+                <Linkedin size={17} />
+              </a>
+            </div>
+
+            {resumeMetadata && (
+              <p className="cinema-hero__resume-note">
+                Resume: <span>{resumeMetadata.title}</span>
+                {resumeMetadata.version ? ` - ${resumeMetadata.version}` : ""}
+              </p>
+            )}
+          </div>
+
+          <a href="#projects" className="cinema-hero__cta focus-ring">
+            DISCOVER IT
+            <ArrowRight size={32} />
           </a>
         </div>
-        {resumeMetadata && (
-          <p className="mt-4 text-sm text-slate-400">
-            Resume: <span className="font-semibold text-slate-200">{resumeMetadata.title}</span>
-            {resumeMetadata.version ? ` · ${resumeMetadata.version}` : ""}
-          </p>
-        )}
-      </motion.div>
-
-      <motion.aside
-        className="glass-card rounded-3xl p-6"
-        initial={{ opacity: 0, y: 22 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.08 }}
-      >
-        <div className="rounded-2xl border border-slate-700/80 bg-ink-950/70 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-300">Career snapshot</span>
-            <span className="rounded-full bg-cyan-300/12 px-3 py-1 text-xs font-bold text-cyan-200">Available</span>
-          </div>
-          <div className="grid gap-4">
-            {[
-              ["Role", personal.role],
-              ["Focus", "Frontend, backend, automation"],
-              ["Growth", "Intern -> Associate Developer"],
-              ["Working style", "Agile, Git workflows, code reviews"]
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                <p className="mt-2 font-semibold text-white">{value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 flex gap-3">
-            <a
-              href={personal.github}
-              target="_blank"
-              rel="noreferrer"
-              className="focus-ring inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-700 py-3 text-sm font-bold text-slate-200 transition hover:border-cyan-300"
-            >
-              <Github size={17} /> GitHub
-            </a>
-            <a
-              href={personal.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="focus-ring inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-700 py-3 text-sm font-bold text-slate-200 transition hover:border-cyan-300"
-            >
-              <Linkedin size={17} /> LinkedIn
-            </a>
-          </div>
-        </div>
-      </motion.aside>
+      </div>
     </section>
   );
 }
