@@ -131,7 +131,6 @@ export function Hero({ onResumeDownload, resumeMetadata }) {
 
       <div className="cinema-hero__inner">
         <div className="cinema-hero__top">
-          <p className="cinema-hero__brand">TOONHUB</p>
           <div className="cinema-hero__meta">
             <MapPin size={15} />
             <span>{personal.location}</span>
@@ -139,9 +138,11 @@ export function Hero({ onResumeDownload, resumeMetadata }) {
         </div>
 
         <div className="cinema-hero__stage">
-          <h2 className="cinema-hero__ghost" aria-hidden="true">
-            3D SHAPE
-          </h2>
+          <div className="cinema-hero__backdrop" aria-hidden="true">
+            <span className="cinema-hero__code-line">const developer = "Yugant D Koulgekar";</span>
+            <span className="cinema-hero__code-line">build("scalable systems");</span>
+            <span className="cinema-hero__code-line">{"ship({ clean: true, reliable: true });"}</span>
+          </div>
           <div className="cinema-hero__panel" aria-hidden="true" />
 
           <div className="cinema-carousel" aria-live="polite">
