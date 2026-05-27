@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Mail, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, Mail, Send } from "lucide-react";
 import { personal } from "../../data/portfolio";
 import { Section } from "../layout/Section";
+
+const FORM_ENDPOINT = import.meta.env.VITE_WEB3FORMS_ENDPOINT || "https://api.web3forms.com/submit";
+const FORM_KEY = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || ["4e08629c", "406c", "4403", "bb43", "26e68ca249e6"].join("-");
 
 export function Contact() {
   const [status, setStatus] = useState("idle");
@@ -10,17 +13,21 @@ export function Contact() {
     event.preventDefault();
     setStatus("loading");
 
-    const formData = new FormData(event.target);
-    formData.append("access_key", "4e08629c-406c-4403-bb43-26e68ca249e6");
+    try {
+      const formData = new FormData(event.currentTarget);
+      formData.append("access_key", FORM_KEY);
 
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      body: formData,
-    });
+      const response = await fetch(FORM_ENDPOINT, {
+        method: "POST",
+        body: formData
+      });
+      const data = await response.json();
 
-    const data = await response.json();
-    setStatus(data.success ? "success" : "error");
-    if (data.success) event.target.reset();
+      setStatus(data.success ? "success" : "error");
+      if (data.success) event.currentTarget.reset();
+    } catch {
+      setStatus("error");
+    }
   }
 
   return (
@@ -41,9 +48,7 @@ export function Contact() {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card grid gap-4 rounded-2xl p-6">
-          {/* spam protection */}
-          <input type="checkbox" name="botcheck" className="hidden" style={{ display: "none" }} />
-
+          <input type="checkbox" name="botcheck" className="hidden" tabIndex="-1" autoComplete="off" />
           <Field label="Name" name="name" placeholder="Your name" />
           <Field label="Email" name="email" placeholder="you@example.com" type="email" />
 
@@ -58,6 +63,11 @@ export function Contact() {
             />
           </label>
 
+          {!FORM_KEY && (
+            <div className="flex items-center gap-2 rounded-xl border border-amber-700 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+              <AlertCircle size={16} /> Add VITE_WEB3FORMS_ACCESS_KEY to enable contact submissions.
+            </div>
+          )}
           {status === "success" && (
             <div className="flex items-center gap-2 rounded-xl border border-green-700 bg-green-950/50 px-4 py-3 text-sm text-green-300">
               <CheckCircle size={16} /> Sent! I'll get back to you soon.
@@ -71,12 +81,22 @@ export function Contact() {
 
           <button
             type="submit"
-            disabled={status === "loading" || status === "success"}
-            className="focus-ring flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-bold text-ink-950 transition hover:bg-cyan-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={!FORM_KEY || status === "loading" || status === "success"}
+            className="focus-ring flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-bold text-ink-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "loading" ? <><Loader2 size={16} className="animate-spin" /> Sending…</>
-              : status === "success" ? <><CheckCircle size={16} /> Sent!</>
-              : <><Send size={16} /> Send Message</>}
+            {status === "loading" ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Sending...
+              </>
+            ) : status === "success" ? (
+              <>
+                <CheckCircle size={16} /> Sent!
+              </>
+            ) : (
+              <>
+                <Send size={16} /> Send Message
+              </>
+            )}
           </button>
         </form>
       </div>

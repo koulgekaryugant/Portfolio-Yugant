@@ -14,7 +14,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed left-1/2 top-4 z-50 w-[min(1120px,calc(100%-24px))] -translate-x-1/2 rounded-2xl border border-[var(--line)] bg-[var(--nav-bg)] px-4 py-3 shadow-premium backdrop-blur-xl">
+    <header className="nav-shell">
       <div className="flex items-center justify-between gap-4">
         <a href="#home" className="focus-ring flex items-center gap-3 rounded-xl">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 font-display text-lg font-bold text-ink-950">
@@ -51,8 +51,7 @@ export function Navbar() {
         </button>
       </div>
 
-      {open && (
-        <div className="mt-4 grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--panel-strong)] p-3 md:hidden">
+      <div className={open ? "nav-mobile-menu nav-mobile-menu--open" : "nav-mobile-menu"} aria-hidden={!open} inert={open ? undefined : true}>
           {links.map((link) => (
             <a
               key={link.href}
@@ -65,8 +64,7 @@ export function Navbar() {
           ))}
           <ViewToggle />
           <ThemeToggle />
-        </div>
-      )}
+      </div>
     </header>
   );
 }

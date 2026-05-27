@@ -22,6 +22,7 @@ export function Home() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [resumeMetadata, setResumeMetadata] = useState(defaultResumeMetadata);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useKeyboardShortcut(useCallback(() => setAdminOpen(true), []));
 
@@ -30,8 +31,20 @@ export function Home() {
   }, [adminOpen]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setLoading(false), 950);
-    return () => window.clearTimeout(timer);
+    let progress = 0;
+    const duration = 5000;
+    const step = 50;
+    const increment = 100 / (duration / step);
+    const interval = window.setInterval(() => {
+      progress = Math.min(progress + increment, 100);
+      setLoadingProgress(Math.round(progress));
+      if (progress >= 100) {
+        window.clearInterval(interval);
+        window.setTimeout(() => setLoading(false), 320);
+      }
+    }, step);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   async function handleResumeDownload() {
@@ -56,7 +69,7 @@ export function Home() {
 
   return (
     <>
-      <LoadingScreen visible={loading} />
+      <LoadingScreen visible={loading} progress={loadingProgress} />
       <Navbar />
       <main className="mode-transition">
         <Hero onResumeDownload={handleResumeDownload} resumeMetadata={resumeMetadata} />
