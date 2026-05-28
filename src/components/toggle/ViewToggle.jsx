@@ -15,7 +15,7 @@ export function ViewToggle() {
       </div>
       <div className="relative grid grid-cols-2 rounded-full border border-slate-700 bg-slate-950/70 p-1 shadow-inner">
         <span
-          className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg transition-transform duration-300 ${
+          className={`absolute bottom-1 ml-1 top-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg transition-transform duration-300 ${
             isDeveloper ? "translate-x-full" : "translate-x-0"
           }`}
           aria-hidden="true"
