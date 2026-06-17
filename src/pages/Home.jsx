@@ -14,6 +14,7 @@ import { Experience } from "../components/timeline/Experience";
 import { GrowthTimeline } from "../components/timeline/GrowthTimeline";
 import { WhyHireMe } from "../components/WhyHireMe";
 import { useViewMode } from "../context/ViewModeContext";
+import { GitHubAnalytics } from "../components/github/GitHubAnalytics";
 import { defaultResumeMetadata, getResumeMetadata, getResumeUrl } from "../firebase/resume";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 
@@ -98,6 +99,8 @@ export function Home() {
       <Footer />
       <AIGuide />
       <AdminModal open={adminOpen} onClose={() => setAdminOpen(false)} />
+      {/* Fixed floating overlay — completely outside page flow */}
+      <GitHubAnalytics />
     </>
   );
 }
