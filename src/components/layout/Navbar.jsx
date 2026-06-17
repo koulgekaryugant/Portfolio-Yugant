@@ -1,7 +1,8 @@
-import { Menu, X } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "../toggle/ThemeToggle";
 import { ViewToggle } from "../toggle/ViewToggle";
+import { useGitHubStats } from "../../context/GitHubStatsContext";
 
 const links = [
   { href: "#experience", label: "Experience" },
@@ -12,6 +13,7 @@ const links = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const { isOpen, setIsOpen } = useGitHubStats();
 
   return (
     <header className="nav-shell">
@@ -36,6 +38,19 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <button
+            onClick={() => setIsOpen(true)}
+            className={`focus-ring relative flex items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+              isOpen
+                ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200"
+                : "border-slate-800 bg-slate-950/60 text-slate-300 hover:text-white hover:border-slate-700"
+            }`}
+            type="button"
+            aria-label="Open GitHub Analytics panel"
+          >
+            <Github size={14} />
+            <span>GitHub Stats</span>
+          </button>
           <ViewToggle />
           <ThemeToggle />
         </div>
@@ -62,6 +77,17 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setOpen(false);
+            }}
+            className="flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-700 hover:text-white"
+            type="button"
+          >
+            <Github size={15} />
+            GitHub Stats
+          </button>
           <ViewToggle />
           <ThemeToggle />
       </div>

@@ -5,7 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Anton", "Inter", "system-ui", "sans-serif"]
+        display: ["Outfit", "Inter", "system-ui", "sans-serif"]
       },
       colors: {
         ink: {
