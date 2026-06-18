@@ -34,7 +34,7 @@ export function Experience() {
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-300" />
                     <span>
                       {bullet === item.impact && (
-                        <strong className="mr-2 rounded-full bg-blue-500/12 px-2 py-1 text-xs text-blue-100">
+                        <strong className="mr-2 rounded-full bg-blue-500/12 py-1 text-blue-100">
                           Key Impact
                         </strong>
                       )}
