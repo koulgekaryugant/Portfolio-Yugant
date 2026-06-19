@@ -82,7 +82,7 @@ export function Navbar() {
               setIsOpen(true);
               setOpen(false);
             }}
-            className="flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-700 hover:text-white"
+            className="flex items-center justify-center gap-2 rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-700 hover:text-white"
             type="button"
           >
             <Github size={15} />

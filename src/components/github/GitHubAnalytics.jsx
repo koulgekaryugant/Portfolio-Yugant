@@ -244,7 +244,7 @@ export function GitHubAnalytics() {
           { icon: <TrendingUp size={16} className="text-emerald-400"/>, label:"Contributions", value: stats?.totalContributions },
           { icon: <Flame size={16} className="text-orange-400"/>, label:"Streak", value: `${stats?.contributionStreak ?? "—"} days` },
         ].map(({ icon, label, value }) => (
-          <div key={label} className="flex flex-col gap-1.5 rounded-xl border border-slate-800/60 bg-slate-950/20 p-3 hover:border-slate-700 transition-colors">
+          <div key={label} className="flex flex-col gap-1.5 rounded-xl border border-slate-800/60 p-3 hover:border-slate-700 transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold truncate">{label}</span>
               {icon}
@@ -257,7 +257,7 @@ export function GitHubAnalytics() {
       {/* ② Heatmap + Language */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Heatmap */}
-        <div className="sm:col-span-2 rounded-xl border border-slate-800/60 bg-slate-950/20 p-4">
+        <div className="sm:col-span-2 rounded-xl border border-slate-800/60 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="flex items-center gap-1.5 text-xs font-semibold text-white">
               <Calendar size={13} className="text-cyan-400"/> Contribution Heatmap
@@ -301,7 +301,7 @@ export function GitHubAnalytics() {
         </div>
 
         {/* Languages */}
-        <div className="rounded-xl border border-slate-800/60 bg-slate-950/20 p-4">
+        <div className="rounded-xl border border-slate-800/60 p-4">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold text-white mb-3">
             <Code2 size={13} className="text-blue-400"/> Languages
           </h3>
@@ -342,7 +342,7 @@ export function GitHubAnalytics() {
       {/* ③ Trends + Activity */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Trends chart */}
-        <div className="sm:col-span-2 rounded-xl border border-slate-800/60 bg-slate-950/20 p-4">
+        <div className="sm:col-span-2 rounded-xl border border-slate-800/60sm:col-span-2 rounded-xl border border-slate-800/60 p-4 p-4">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold text-white mb-4">
             <TrendingUp size={13} className="text-emerald-400"/> Weekly Contribution Trends
           </h3>
@@ -403,7 +403,7 @@ export function GitHubAnalytics() {
         </div>
 
         {/* Recent activity */}
-        <div className="rounded-xl border border-slate-800/60 bg-slate-950/20 p-4">
+        <div className="rounded-xl border border-slate-800/60 p-4">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold text-white mb-3">
             <Activity size={13} className="text-purple-400"/> Recent Activity
           </h3>
@@ -439,7 +439,7 @@ export function GitHubAnalytics() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {stats?.repositoryStats?.map(r=>(
             <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
-              className="group flex flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-950/20 p-3 transition-all hover:-translate-y-0.5 hover:border-slate-700 hover:bg-slate-900/30">
+              className="group flex flex-col justify-between rounded-xl border border-slate-800/60 p-3 transition-all hover:-translate-y-0.5 hover:border-slate-700 hover:bg-slate-900/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-white group-hover:text-cyan-300 transition truncate">{r.name}</span>
@@ -524,12 +524,12 @@ export function GitHubAnalytics() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={fetchStats} disabled={loading}
-                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-950/40 text-slate-400 hover:text-white transition"
+                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white transition"
                     type="button" title="Refresh">
                     <RefreshCw size={13} className={loading ? "animate-spin" : ""}/>
                   </button>
                   <button onClick={() => setIsOpen(false)}
-                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-950/40 text-slate-400 hover:text-white transition"
+                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white transition"
                     type="button" title="Close">
                     <X size={14}/>
                   </button>
