@@ -20,19 +20,27 @@ const getLangColor = (l) => LANG_COLORS[l] || "#858585";
 
 /* ── Layout constants ─────────────────────────────────────────── */
 const MOBILE_BREAKPOINT = 768;
-const MIN_W = 420, MIN_H = 340;
-const DEFAULT_W = 680, DEFAULT_H = 540;
 const TITLEBAR_H = 44;
+
+const DESKTOP_DEFAULTS = { w: 680, h: 540 };
+const MOBILE_DEFAULTS  = { w: 340, h: 480 };
+const MIN_W = 280, MIN_H = 280;
 
 /* ── Clamp helper ─────────────────────────────────────────────── */
 function clamp(val, lo, hi) { return Math.max(lo, Math.min(hi, val)); }
+
+/* ── Get defaults based on current viewport ───────────────────── */
+function getDefaults() {
+  if (typeof window === "undefined") return DESKTOP_DEFAULTS;
+  return window.innerWidth < MOBILE_BREAKPOINT ? MOBILE_DEFAULTS : DESKTOP_DEFAULTS;
+}
 
 /* ── Initial position (bottom-right with padding) ─────────────── */
 function getInitialPos(w, h) {
   if (typeof window === "undefined") return { x: 24, y: 80 };
   return {
-    x: Math.max(16, window.innerWidth - w - 24),
-    y: Math.max(72, window.innerHeight - h - 24),
+    x: clamp(window.innerWidth  - w - 16, 0, window.innerWidth  - w),
+    y: clamp(window.innerHeight - h - 16, 0, window.innerHeight - h),
   };
 }
 
@@ -41,40 +49,30 @@ export function GitHubAnalytics() {
   const { isOpen, setIsOpen } = useGitHubStats();
 
   /* ── Stats data state ─────────────────────────────────────── */
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [stats, setStats]           = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
   /* ── Window state ─────────────────────────────────────────── */
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT
-  );
-  const [size, setSize] = useState({ w: DEFAULT_W, h: DEFAULT_H });
-  const [pos, setPos] = useState(() => getInitialPos(DEFAULT_W, DEFAULT_H));
+  const [size, setSize] = useState(() => getDefaults());
+  const [pos,  setPos]  = useState(() => getInitialPos(getDefaults().w, getDefaults().h));
 
-  /* ── Drag refs ────────────────────────────────────────────── */
-  const dragRef = useRef(null);           // { startMouseX, startMouseY, startPosX, startPosY }
-  const resizeRef = useRef(null);         // { dir, startX, startY, startW, startH, startPosX, startPosY }
-  const isDragging = useRef(false);
-  const isResizing = useRef(false);
-  const rootRef = useRef(null);
-
-  /* ── Responsive: detect mobile ───────────────────────────── */
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+  /* ── Interaction refs ─────────────────────────────────────── */
+  // Stores { startPointerX, startPointerY, startPosX, startPosY }
+  const dragRef   = useRef(null);
+  // Stores { dir, startX, startY, startW, startH, startPX, startPY }
+  const resizeRef = useRef(null);
+  const rootRef   = useRef(null);
 
   /* ── Fetch GitHub stats ───────────────────────────────────── */
   const fetchStats = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       setStats(await getGitHubStats());
-    } catch (e) {
+    } catch {
       setError("Failed to fetch live GitHub statistics. Check network or add VITE_GITHUB_TOKEN.");
     } finally {
       setLoading(false);
@@ -82,6 +80,23 @@ export function GitHubAnalytics() {
   }, []);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  /* ── Clamp position when viewport resizes ─────────────────── */
+  useEffect(() => {
+    const onVpResize = () => {
+      setSize(prev => {
+        const maxW = window.innerWidth;
+        const maxH = window.innerHeight;
+        return { w: clamp(prev.w, MIN_W, maxW), h: clamp(prev.h, MIN_H, maxH) };
+      });
+      setPos(prev => ({
+        x: clamp(prev.x, 0, Math.max(0, window.innerWidth  - size.w)),
+        y: clamp(prev.y, 0, Math.max(0, window.innerHeight - (isMinimized ? TITLEBAR_H : size.h))),
+      }));
+    };
+    window.addEventListener("resize", onVpResize);
+    return () => window.removeEventListener("resize", onVpResize);
+  }, [size, isMinimized]);
 
   /* ── Date helpers ─────────────────────────────────────────── */
   const formatDate = (s) =>
@@ -102,7 +117,10 @@ export function GitHubAnalytics() {
   const heatmapWeeks = useMemo(() => {
     const raw = stats?.contributionHeatmap ?? [];
     const weeks = [];
-    for (let i = 0; i < raw.length; i += 7) { const w = raw.slice(i, i + 7); if (w.length) weeks.push(w); }
+    for (let i = 0; i < raw.length; i += 7) {
+      const w = raw.slice(i, i + 7);
+      if (w.length) weeks.push(w);
+    }
     return weeks;
   }, [stats]);
 
@@ -140,59 +158,75 @@ export function GitHubAnalytics() {
   }, [stats]);
 
   /* ════════════════════════════════════════════════════════════
-     DRAG LOGIC
+     DRAG — Pointer Events (mouse + touch + stylus)
   ════════════════════════════════════════════════════════════ */
-  const onTitlebarMouseDown = useCallback((e) => {
-    if (e.button !== 0) return;
+  const onTitlebarPointerDown = useCallback((e) => {
+    // Only primary button for mouse; any pointer for touch/pen
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    isDragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     dragRef.current = {
-      startMouseX: e.clientX, startMouseY: e.clientY,
-      startPosX: pos.x, startPosY: pos.y,
+      startPointerX: e.clientX,
+      startPointerY: e.clientY,
+      startPosX: pos.x,
+      startPosY: pos.y,
     };
     rootRef.current?.classList.add("fw-root--dragging");
 
     const onMove = (ev) => {
-      if (!isDragging.current) return;
+      if (!dragRef.current) return;
       const d = dragRef.current;
-      const dx = ev.clientX - d.startMouseX;
-      const dy = ev.clientY - d.startMouseY;
-      const maxX = window.innerWidth - size.w;
-      const maxY = window.innerHeight - (isMinimized ? TITLEBAR_H : size.h);
-      setPos({ x: clamp(d.startPosX + dx, 0, maxX), y: clamp(d.startPosY + dy, 0, maxY) });
+      const dx = ev.clientX - d.startPointerX;
+      const dy = ev.clientY - d.startPointerY;
+      const winH = isMinimized ? TITLEBAR_H : size.h;
+      setPos({
+        x: clamp(d.startPosX + dx, 0, Math.max(0, window.innerWidth  - size.w)),
+        y: clamp(d.startPosY + dy, 0, Math.max(0, window.innerHeight - winH)),
+      });
     };
-    const onUp = () => {
-      isDragging.current = false;
+
+    const onUp = (ev) => {
+      dragRef.current = null;
       rootRef.current?.classList.remove("fw-root--dragging");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      ev.currentTarget.removeEventListener("pointermove", onMove);
+      ev.currentTarget.removeEventListener("pointerup",   onUp);
+      ev.currentTarget.removeEventListener("pointercancel", onUp);
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+
+    e.currentTarget.addEventListener("pointermove",   onMove);
+    e.currentTarget.addEventListener("pointerup",     onUp);
+    e.currentTarget.addEventListener("pointercancel", onUp);
   }, [pos, size, isMinimized]);
 
   /* ════════════════════════════════════════════════════════════
-     RESIZE LOGIC
+     RESIZE — Pointer Events (mouse + touch + stylus)
   ════════════════════════════════════════════════════════════ */
-  const onResizeMouseDown = useCallback((dir) => (e) => {
-    e.preventDefault(); e.stopPropagation();
-    isResizing.current = true;
+  const onResizePointerDown = useCallback((dir) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     resizeRef.current = {
       dir,
       startX: e.clientX, startY: e.clientY,
-      startW: size.w, startH: size.h,
-      startPX: pos.x, startPY: pos.y,
+      startW: size.w,    startH: size.h,
+      startPX: pos.x,    startPY: pos.y,
     };
 
     const onMove = (ev) => {
-      if (!isResizing.current) return;
+      if (!resizeRef.current) return;
       const r = resizeRef.current;
       const dx = ev.clientX - r.startX;
       const dy = ev.clientY - r.startY;
       let newW = r.startW, newH = r.startH, newX = r.startPX, newY = r.startPY;
 
-      if (dir.includes("e")) newW = clamp(r.startW + dx, MIN_W, window.innerWidth - r.startPX);
-      if (dir.includes("s")) newH = clamp(r.startH + dy, MIN_H, window.innerHeight - r.startPY);
+      if (dir.includes("e")) {
+        newW = clamp(r.startW + dx, MIN_W, window.innerWidth - r.startPX);
+      }
+      if (dir.includes("s")) {
+        newH = clamp(r.startH + dy, MIN_H, window.innerHeight - r.startPY);
+      }
       if (dir.includes("w")) {
         const candidate = clamp(r.startW - dx, MIN_W, window.innerWidth);
         newX = clamp(r.startPX + (r.startW - candidate), 0, r.startPX + r.startW - MIN_W);
@@ -208,29 +242,28 @@ export function GitHubAnalytics() {
       setPos({ x: newX, y: newY });
     };
 
-    const onUp = () => {
-      isResizing.current = false;
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+    const onUp = (ev) => {
+      resizeRef.current = null;
+      ev.currentTarget.removeEventListener("pointermove",   onMove);
+      ev.currentTarget.removeEventListener("pointerup",     onUp);
+      ev.currentTarget.removeEventListener("pointercancel", onUp);
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+
+    e.currentTarget.addEventListener("pointermove",   onMove);
+    e.currentTarget.addEventListener("pointerup",     onUp);
+    e.currentTarget.addEventListener("pointercancel", onUp);
   }, [size, pos]);
 
-  /* ── Clamp position when viewport shrinks ─────────────────── */
-  useEffect(() => {
-    const onVpResize = () => {
-      setPos(p => ({
-        x: clamp(p.x, 0, Math.max(0, window.innerWidth - size.w)),
-        y: clamp(p.y, 0, Math.max(0, window.innerHeight - (isMinimized ? TITLEBAR_H : size.h))),
-      }));
-    };
-    window.addEventListener("resize", onVpResize);
-    return () => window.removeEventListener("resize", onVpResize);
-  }, [size, isMinimized]);
+  /* ── Restore to appropriate defaults ─────────────────────── */
+  const handleRestore = useCallback(() => {
+    const defaults = getDefaults();
+    setSize(defaults);
+    setPos(getInitialPos(defaults.w, defaults.h));
+    setIsMinimized(false);
+  }, []);
 
   /* ══════════════════════════════════════════════════════════
-     CONTENT (shared between desktop window and mobile sheet)
+     DASHBOARD CONTENT
   ══════════════════════════════════════════════════════════ */
   const DashboardContent = (
     <div className="space-y-5 p-4">
@@ -238,11 +271,11 @@ export function GitHubAnalytics() {
       {/* ① Key metrics */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {[
-          { icon: <BookOpen size={16} className="text-cyan-400"/>, label:"Repositories", value: stats?.totalRepos },
-          { icon: <Users size={16} className="text-blue-400"/>, label:"Followers", value: stats?.followers },
-          { icon: <Users size={16} className="text-purple-400"/>, label:"Following", value: stats?.following },
-          { icon: <TrendingUp size={16} className="text-emerald-400"/>, label:"Contributions", value: stats?.totalContributions },
-          { icon: <Flame size={16} className="text-orange-400"/>, label:"Streak", value: `${stats?.contributionStreak ?? "—"} days` },
+          { icon: <BookOpen  size={16} className="text-cyan-400"/>,    label: "Repositories",  value: stats?.totalRepos },
+          { icon: <Users     size={16} className="text-blue-400"/>,    label: "Followers",     value: stats?.followers },
+          { icon: <Users     size={16} className="text-purple-400"/>,  label: "Following",     value: stats?.following },
+          { icon: <TrendingUp size={16} className="text-emerald-400"/>, label: "Contributions", value: stats?.totalContributions },
+          { icon: <Flame     size={16} className="text-orange-400"/>,  label: "Streak",        value: `${stats?.contributionStreak ?? "—"} days` },
         ].map(({ icon, label, value }) => (
           <div key={label} className="flex flex-col gap-1.5 rounded-xl border border-slate-800/60 p-3 hover:border-slate-700 transition-colors">
             <div className="flex items-center justify-between">
@@ -293,7 +326,7 @@ export function GitHubAnalytics() {
           </div>
           <div className="flex items-center justify-end gap-1.5 mt-2 text-[9px] text-slate-500">
             <span>Less</span>
-            {["bg-slate-800/30","bg-cyan-500/40","bg-cyan-400/70","bg-cyan-300"].map(c=>(
+            {["bg-slate-800/30","bg-cyan-500/40","bg-cyan-400/70","bg-cyan-300"].map(c => (
               <div key={c} className={`h-[8px] w-[8px] rounded-[2px] ${c}`}/>
             ))}
             <span>More</span>
@@ -324,10 +357,10 @@ export function GitHubAnalytics() {
                 </div>
               </div>
               <div className="w-full space-y-1.5">
-                {langChart.slice(0,5).map(l=>(
+                {langChart.slice(0, 5).map(l => (
                   <div key={l.name} className="flex items-center justify-between text-[10px]">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{background:l.color}}/>
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: l.color }}/>
                       <span className="text-slate-300">{l.name}</span>
                     </div>
                     <span className="text-slate-400">{l.percent}%</span>
@@ -342,7 +375,7 @@ export function GitHubAnalytics() {
       {/* ③ Trends + Activity */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Trends chart */}
-        <div className="sm:col-span-2 rounded-xl border border-slate-800/60sm:col-span-2 rounded-xl border border-slate-800/60 p-4 p-4">
+        <div className="sm:col-span-2 rounded-xl border border-slate-800/60 p-4">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold text-white mb-4">
             <TrendingUp size={13} className="text-emerald-400"/> Weekly Contribution Trends
           </h3>
@@ -353,7 +386,7 @@ export function GitHubAnalytics() {
                   className="absolute z-20 pointer-events-none rounded-lg border border-slate-700 bg-slate-900/95 px-2.5 py-1.5 text-[10px] backdrop-blur-sm shadow-premium"
                   style={{
                     left: `${(hoveredPoint.x / trend.W) * 100}%`,
-                    top: `${(hoveredPoint.y / trend.H) * 100}%`,
+                    top:  `${(hoveredPoint.y / trend.H) * 100}%`,
                     transform: "translate(-50%, calc(-100% - 12px))",
                   }}
                 >
@@ -364,27 +397,31 @@ export function GitHubAnalytics() {
               <svg className="w-full overflow-visible" viewBox={`0 0 ${trend.W} ${trend.H}`} preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="fwAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.2"/>
+                    <stop offset="0%"   stopColor="#22d3ee" stopOpacity="0.2"/>
                     <stop offset="100%" stopColor="#3b82f6" stopOpacity="0"/>
                   </linearGradient>
                   <linearGradient id="fwLineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#22d3ee"/>
+                    <stop offset="0%"   stopColor="#22d3ee"/>
                     <stop offset="100%" stopColor="#3b82f6"/>
                   </linearGradient>
                 </defs>
-                {[15, 62.5, 110].map(y=>(
+                {[15, 62.5, 110].map(y => (
                   <line key={y} x1="15" y1={y} x2="485" y2={y} stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
                 ))}
                 {hoveredPoint && (
-                  <line x1={hoveredPoint.x} y1={trend.H-trend.PAD} x2={hoveredPoint.x} y2={hoveredPoint.y}
-                    stroke="rgba(34,211,238,0.35)" strokeWidth="1.5" strokeDasharray="4,4"/>
+                  <line
+                    x1={hoveredPoint.x} y1={trend.H - trend.PAD}
+                    x2={hoveredPoint.x} y2={hoveredPoint.y}
+                    stroke="rgba(34,211,238,0.35)" strokeWidth="1.5" strokeDasharray="4,4"
+                  />
                 )}
                 <path d={trend.area} fill="url(#fwAreaGrad)"/>
                 <path d={trend.line} fill="none" stroke="url(#fwLineGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                {trend.pts.map((p,i)=>(
-                  <g key={i} onMouseEnter={()=>setHoveredPoint(p)} onMouseLeave={()=>setHoveredPoint(null)} className="cursor-pointer">
+                {trend.pts.map((p, i) => (
+                  <g key={i} onMouseEnter={() => setHoveredPoint(p)} onMouseLeave={() => setHoveredPoint(null)} className="cursor-pointer">
                     <circle cx={p.x} cy={p.y} r="12" fill="transparent"/>
-                    <circle cx={p.x} cy={p.y}
+                    <circle
+                      cx={p.x} cy={p.y}
                       r={hoveredPoint?.x === p.x ? 5.5 : 3.5}
                       fill="#0f172a" stroke="#22d3ee"
                       strokeWidth={hoveredPoint?.x === p.x ? 2.5 : 2}
@@ -395,7 +432,7 @@ export function GitHubAnalytics() {
               </svg>
               <div className="flex justify-between text-[9px] text-slate-500 mt-1">
                 <span>{trend.pts[0]?.label}</span>
-                <span>{trend.pts[Math.floor(trend.pts.length/2)]?.label}</span>
+                <span>{trend.pts[Math.floor(trend.pts.length / 2)]?.label}</span>
                 <span>{trend.pts.at(-1)?.label}</span>
               </div>
             </div>
@@ -408,13 +445,18 @@ export function GitHubAnalytics() {
             <Activity size={13} className="text-purple-400"/> Recent Activity
           </h3>
           <div className="space-y-3">
-            {stats?.recentActivity?.slice(0,6).map((a,i)=>(
+            {stats?.recentActivity?.slice(0, 6).map((a, i) => (
               <div key={i} className="flex items-start gap-2 text-[10px]">
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-slate-800/60">
-                  {a.type==="Push" ? <GitCommit size={11} className="text-cyan-400"/> : <Activity size={11}/>}
+                  {a.type === "Push"
+                    ? <GitCommit size={11} className="text-cyan-400"/>
+                    : <Activity  size={11}/>
+                  }
                 </span>
                 <div className="min-w-0">
-                  <p className="text-slate-300 truncate">{a.type} <span className="text-slate-500">→</span> {a.repo}</p>
+                  <p className="text-slate-300 truncate">
+                    {a.type} <span className="text-slate-500">→</span> {a.repo}
+                  </p>
                   <span className="text-slate-500">{relTime(a.date)}</span>
                 </div>
               </div>
@@ -437,7 +479,7 @@ export function GitHubAnalytics() {
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {stats?.repositoryStats?.map(r=>(
+          {stats?.repositoryStats?.map(r => (
             <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
               className="group flex flex-col justify-between rounded-xl border border-slate-800/60 p-3 transition-all hover:-translate-y-0.5 hover:border-slate-700 hover:bg-slate-900/30">
               <div>
@@ -449,7 +491,7 @@ export function GitHubAnalytics() {
               </div>
               <div className="flex items-center justify-between mt-2.5 text-[10px] text-slate-500">
                 <div className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{background:getLangColor(r.language)}}/>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: getLangColor(r.language) }}/>
                   <span>{r.language}</span>
                 </div>
                 <div className="flex gap-2">
@@ -468,7 +510,7 @@ export function GitHubAnalytics() {
           <GitCommit size={13} className="text-cyan-400"/> Latest Commits
         </h3>
         <div className="relative border-l border-slate-800/80 pl-5 space-y-4">
-          {stats?.recentCommits?.slice(0,6).map((c,i)=>(
+          {stats?.recentCommits?.slice(0, 6).map((c, i) => (
             <div key={i} className="relative group">
               <span className="absolute -left-[27px] top-1 h-2 w-2 rounded-full bg-slate-700 ring-4 ring-[rgba(7,17,31,0.9)] group-hover:bg-cyan-400 transition-colors"/>
               <div className="flex flex-col gap-1 text-[10px] sm:flex-row sm:justify-between sm:items-center">
@@ -495,58 +537,7 @@ export function GitHubAnalytics() {
   );
 
   /* ════════════════════════════════════════════════════════════
-     RENDER: Mobile → bottom sheet
-  ════════════════════════════════════════════════════════════ */
-  if (isMobile) {
-    return (
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              className="fw-mobile-backdrop"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              onClick={() => setIsOpen(false)}
-            />
-            <motion.div
-              className="fw-mobile-sheet"
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="fw-mobile-sheet__drag-handle"/>
-              <div className="fw-mobile-sheet__titlebar">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 text-ink-950">
-                    <Github size={15}/>
-                  </span>
-                  <span className="fw-title">GitHub Live Analytics</span>
-                  <span className="fw-live">Live</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={fetchStats} disabled={loading}
-                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white transition"
-                    type="button" title="Refresh">
-                    <RefreshCw size={13} className={loading ? "animate-spin" : ""}/>
-                  </button>
-                  <button onClick={() => setIsOpen(false)}
-                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white transition"
-                    type="button" title="Close">
-                    <X size={14}/>
-                  </button>
-                </div>
-              </div>
-              <div className="fw-mobile-sheet__content">
-                {loading ? <LoadingState/> : error ? <ErrorState error={error} onRetry={fetchStats}/> : DashboardContent}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     RENDER: Desktop → floating window
+     RENDER — Single floating window for all screen sizes
   ════════════════════════════════════════════════════════════ */
   return (
     <AnimatePresence>
@@ -555,26 +546,55 @@ export function GitHubAnalytics() {
           ref={rootRef}
           className={`fw-root ${isMinimized ? "fw-root--minimized" : ""}`}
           style={{
-            left: pos.x,
-            top: pos.y,
-            width: size.w,
+            left:   pos.x,
+            top:    pos.y,
+            width:  size.w,
             height: isMinimized ? TITLEBAR_H : size.h,
           }}
           initial={{ opacity: 0, scale: 0.94, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 12 }}
+          animate={{ opacity: 1, scale: 1,    y: 0  }}
+          exit={{    opacity: 0, scale: 0.94, y: 12 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         >
-          {/* Titlebar */}
-          <div className="fw-titlebar" onMouseDown={onTitlebarMouseDown}>
+          {/* ── Titlebar ─────────────────────────────────────── */}
+          {/*
+            We attach pointer events directly so setPointerCapture works.
+            touch-action: none prevents the browser from scrolling while dragging.
+          */}
+          <div
+            className="fw-titlebar"
+            style={{ touchAction: "none" }}
+            onPointerDown={onTitlebarPointerDown}
+          >
             {/* Traffic-light buttons */}
-            <div className="fw-traffic" onMouseDown={e => e.stopPropagation()}>
-              <button type="button" className="fw-btn fw-btn--close" title="Close" onClick={() => setIsOpen(false)}/>
-              <button type="button" className="fw-btn fw-btn--min" title={isMinimized ? "Restore" : "Minimize"}
-                onClick={() => setIsMinimized(v => !v)}/>
-              <button type="button" className="fw-btn fw-btn--restore" title="Restore default size"
-                onClick={() => { setSize({w:DEFAULT_W, h:DEFAULT_H}); setPos(getInitialPos(DEFAULT_W, DEFAULT_H)); setIsMinimized(false); }}/>
-            </div>
+           <div className="fw-traffic" onPointerDown={e => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="fw-btn fw-btn--close"
+                  title="Close"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <span className="fw-btn__icon">×</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="fw-btn fw-btn--min"
+                  title={isMinimized ? "Restore" : "Minimize"}
+                  onClick={() => setIsMinimized(v => !v)}
+                >
+                  <span className="fw-btn__icon">−</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="fw-btn fw-btn--restore"
+                  title="Restore default size"
+                  onClick={handleRestore}
+                >
+                  <span className="fw-btn__icon">+</span>
+                </button>
+              </div>
 
             {/* Title */}
             <div className="fw-title">
@@ -588,42 +608,59 @@ export function GitHubAnalytics() {
             <span className="fw-live">Live</span>
 
             {/* Actions */}
-            <div className="fw-title-actions" onMouseDown={e => e.stopPropagation()}>
-              <button type="button" onClick={fetchStats} disabled={loading}
+            <div className="fw-title-actions" onPointerDown={e => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={fetchStats}
+                disabled={loading}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
-                title="Refresh">
+                title="Refresh"
+              >
                 <RefreshCw size={12} className={loading ? "animate-spin" : ""}/>
               </button>
               {stats?.profileUrl && (
-                <a href={stats.profileUrl} target="_blank" rel="noreferrer"
+                <a
+                  href={stats.profileUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
-                  title="View GitHub Profile" onMouseDown={e=>e.stopPropagation()}>
+                  title="View GitHub Profile"
+                  onPointerDown={e => e.stopPropagation()}
+                >
                   <ExternalLink size={12}/>
                 </a>
               )}
-              <button type="button" onClick={() => setIsMinimized(v=>!v)}
+              <button
+                type="button"
+                onClick={() => setIsMinimized(v => !v)}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
-                title={isMinimized ? "Restore" : "Minimize"}>
+                title={isMinimized ? "Restore" : "Minimize"}
+              >
                 {isMinimized ? <Maximize2 size={12}/> : <Minimize2 size={12}/>}
               </button>
             </div>
           </div>
 
-          {/* Content */}
+          {/* ── Scrollable content ────────────────────────────── */}
           {!isMinimized && (
             <div className="fw-content">
-              {loading ? <LoadingState/> : error ? <ErrorState error={error} onRetry={fetchStats}/> : DashboardContent}
+              {loading  ? <LoadingState/>
+               : error  ? <ErrorState error={error} onRetry={fetchStats}/>
+               : DashboardContent}
             </div>
           )}
 
-          {/* Resize handles — hidden when minimized */}
+          {/* ── Resize handles — present on all screen sizes ─── */}
           {!isMinimized && (
             <>
-              <div className="fw-resize fw-resize--n" onMouseDown={onResizeMouseDown("n")}/>
-              <div className="fw-resize fw-resize--e" onMouseDown={onResizeMouseDown("e")}/>
-              <div className="fw-resize fw-resize--s" onMouseDown={onResizeMouseDown("s")}/>
-              <div className="fw-resize fw-resize--w" onMouseDown={onResizeMouseDown("w")}/>
-              <div className="fw-resize fw-resize--se" onMouseDown={onResizeMouseDown("se")}/>
+              <ResizeHandle dir="n"  onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="e"  onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="s"  onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="w"  onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="se" onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="sw" onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="ne" onPointerDown={onResizePointerDown} />
+              <ResizeHandle dir="nw" onPointerDown={onResizePointerDown} />
             </>
           )}
         </motion.div>
@@ -632,16 +669,32 @@ export function GitHubAnalytics() {
   );
 }
 
+/* ── Resize handle sub-component ───────────────────────────────── */
+/**
+ * Attaches pointer events directly on the element so setPointerCapture
+ * works correctly on touch devices. touch-action: none prevents scroll
+ * interference during a resize gesture.
+ */
+function ResizeHandle({ dir, onPointerDown }) {
+  return (
+    <div
+      className={`fw-resize fw-resize--${dir}`}
+      style={{ touchAction: "none" }}
+      onPointerDown={onPointerDown(dir)}
+    />
+  );
+}
+
 /* ── Utility sub-components ─────────────────────────────────── */
 function LoadingState() {
   return (
     <div className="animate-pulse p-4 space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        {[...Array(3)].map((_,i)=><div key={i} className="h-16 rounded-xl bg-slate-800/40"/>)}
+        {[...Array(3)].map((_, i) => <div key={i} className="h-16 rounded-xl bg-slate-800/40"/>)}
       </div>
       <div className="h-36 rounded-xl bg-slate-800/40"/>
       <div className="grid grid-cols-2 gap-3">
-        {[...Array(2)].map((_,i)=><div key={i} className="h-24 rounded-xl bg-slate-800/40"/>)}
+        {[...Array(2)].map((_, i) => <div key={i} className="h-24 rounded-xl bg-slate-800/40"/>)}
       </div>
     </div>
   );
@@ -651,8 +704,11 @@ function ErrorState({ error, onRetry }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 text-center">
       <p className="text-xs text-red-400 max-w-xs">{error}</p>
-      <button type="button" onClick={onRetry}
-        className="focus-ring flex items-center gap-1.5 rounded-xl bg-cyan-300 px-4 py-2 text-xs font-semibold text-ink-950 hover:bg-cyan-200 transition">
+      <button
+        type="button"
+        onClick={onRetry}
+        className="focus-ring flex items-center gap-1.5 rounded-xl bg-cyan-300 px-4 py-2 text-xs font-semibold text-ink-950 hover:bg-cyan-200 transition"
+      >
         <RefreshCw size={13}/> Retry
       </button>
     </div>
