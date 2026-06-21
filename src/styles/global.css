@@ -1182,12 +1182,57 @@ body::before {
 .fw-btn {
   display: grid;
   place-items: center;
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
   transition: filter 0.15s ease, transform 0.15s ease;
+}
+.fw-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.fw-btn:hover {
+  filter: brightness(1.25);
+  transform: scale(1.12);
+}
+
+.fw-btn--close {
+  background: #ff5f56;
+}
+
+.fw-btn--min {
+  background: #febc2e;
+}
+
+.fw-btn--restore {
+  background: #28c840;
+}
+
+/* Mac-style hover icons */
+.fw-btn__icon {
+  opacity: 0;
+  font-size: 9px;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.75);
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  user-select: none;
+}
+
+/* Show icons when hovering over traffic lights */
+.fw-traffic:hover .fw-btn__icon {
+  opacity: 1;
 }
 
 .fw-btn:hover { filter: brightness(1.25); transform: scale(1.12); }
