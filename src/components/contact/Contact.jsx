@@ -14,7 +14,8 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const form = event.currentTarget;
+      const formData = new FormData(form);
       formData.append("access_key", FORM_KEY);
 
       const response = await fetch(FORM_ENDPOINT, {
@@ -24,7 +25,12 @@ export function Contact() {
       const data = await response.json();
 
       setStatus(data.success ? "success" : "error");
-      if (data.success) event.currentTarget.reset();
+      if (data.success){
+        setStatus("success");
+        form.reset();
+      }else{
+        setStatus("error");
+      }
     } catch {
       setStatus("error");
     }
