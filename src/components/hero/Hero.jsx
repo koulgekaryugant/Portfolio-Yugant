@@ -196,28 +196,51 @@ export function Hero({ onResumeDownload, resumeMetadata }) {
                 type="button"
                 onClick={() => goTo(-1)}
                 disabled={isAnimating}
-                className="cinema-nav-button focus-ring"
+                className="cinema-nav-button cinema-nav-prev focus-ring"
                 aria-label="Show previous carousel visual"
               >
+                <span className="cinema-tooltip">Previous</span>
                 <ArrowLeft size={20} />
               </button>
               <button
                 type="button"
                 onClick={() => goTo(1)}
                 disabled={isAnimating}
-                className="cinema-nav-button focus-ring"
+                className="cinema-nav-button cinema-nav-next focus-ring"
                 aria-label="Show next carousel visual"
               >
+                <span className="cinema-tooltip">Next</span>
                 <ArrowRight size={20} />
               </button>
-              <button type="button" onClick={onResumeDownload} className="cinema-resume-button focus-ring">
+
+              <button
+                type="button"
+                onClick={onResumeDownload}
+                className="cinema-resume-button focus-ring"
+              >
                 <Download size={17} />
                 Open Resume
               </button>
-              <a href={personal.github} target="_blank" rel="noreferrer" className="cinema-social-link focus-ring" aria-label="Open GitHub profile">
+
+              <a
+                href={personal.github}
+                target="_blank"
+                rel="noreferrer"
+                className="cinema-social-link github focus-ring"
+                aria-label="Open GitHub profile"
+              >
+                <span className="cinema-tooltip">GitHub</span>
                 <Github size={17} />
               </a>
-              <a href={personal.linkedin} target="_blank" rel="noreferrer" className="cinema-social-link focus-ring" aria-label="Open LinkedIn profile">
+
+              <a
+                href={personal.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="cinema-social-link linkedin focus-ring"
+                aria-label="Open LinkedIn profile"
+              >
+                <span className="cinema-tooltip">LinkedIn</span>
                 <Linkedin size={17} />
               </a>
             </div>
